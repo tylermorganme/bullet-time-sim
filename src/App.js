@@ -4,7 +4,6 @@ import { OrbitControls, Stars, Sky, Plane } from "@react-three/drei";
 import "./App.css";
 import * as THREE from "three";
 import Model from "./components/Model";
-import Capture from "./components/Capture";
 import { GUIProvider } from "./contexts/GUIContext";
 
 function Scene() {
@@ -40,7 +39,6 @@ function Scene() {
         }
       />
       <Model url={`${process.env.PUBLIC_URL}/Joyful Jump.fbx`} />
-      <Capture />
     </React.Fragment>
   );
 }

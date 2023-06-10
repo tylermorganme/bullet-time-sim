@@ -1,55 +1,52 @@
 import { createContext, useContext, useEffect, useState, useRef } from "react";
 import * as dat from "dat.gui";
 
-// Context to hold the GUI and the parameters
 const GUIContext = createContext();
 
-// Hook to use the GUI context
 export const useGUI = () => useContext(GUIContext);
 
-// Provider to provide the GUI and the parameters
 export const GUIProvider = ({ children }) => {
-//   const [scale, setScale] = useState(0.01);
-//   const [rotation, setRotation] = useState(0);
-//   const [animationTime, setAnimationTime] = useState(0);
-//   const [fps, setFps] = useState(30);
-//   const [duration, setDuration] = useState(2); //seconds
-
   const [parameters, setParameters] = useState({
     scale: 0.01,
     rotation: 0,
     animationTime: 0,
-    fps: 30,
-    duration: 2,
+    fps: 5,
+    duration: 1,
+    numCameras: 2,
+    radius: 3,
+    cameraHeight: 1.5,
   });
 
-  let gui;
-
-  // GUI
   useEffect(() => {
-    gui = new dat.GUI();
-    // You can add more parameters as needed
-    gui
-      .add(parameters, "scale", 0.01, 0.1)
-      .onChange((value) => setParameters({ ...parameters, scale: value }));
-    gui
-      .add(parameters, "rotation", -Math.PI, Math.PI)
-      .onChange((value) => setParameters({ ...parameters, rotation: value }));
-    gui
-      .add(parameters, "animationTime", 0, 10)
-        .onChange((value) => setParameters({ ...parameters, animationTime: value }));
-    gui
-      .add(parameters, "fps", 0, 120)
-      .onChange((value) => setParameters({ ...parameters, fps: value }));
-    gui
-      .add(parameters, "duration", 0, 4)
-      .onChange((value) => setParameters({ ...parameters, duration: value }));
+    const gui = new dat.GUI();
 
-    return () => gui.destroy();
+    const controllers = {
+      scale: gui.add(parameters, "scale", 0.01, 0.1),
+      rotation: gui.add(parameters, "rotation", -Math.PI, Math.PI),
+      animationTime: gui.add(parameters, "animationTime", 0, 2),
+      fps: gui.add(parameters, "fps", 0, 120),
+      duration: gui.add(parameters, "duration", 0, 4),
+      numCameras: gui.add(parameters, "numCameras", 0, 64),
+      radius: gui.add(parameters, "radius", 0, 10),
+      cameraHeight: gui.add(parameters, "cameraHeight", 0, 4),
+    };
+
+    for (const key in controllers) {
+      controllers[key].onChange((value) => {
+        setParameters((prevParameters) => ({
+          ...prevParameters,
+          [key]: value,
+        }));
+      });
+    }
+
+    return () => {
+      gui.destroy();
+    };
   }, []);
 
   return (
-    <GUIContext.Provider value={{ gui, parameters }}>
+    <GUIContext.Provider value={{ parameters, setParameters }}>
       {children}
     </GUIContext.Provider>
   );
