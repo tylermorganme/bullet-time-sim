@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState, useRef } from "react";
 import * as dat from "dat.gui";
 
 const GUIContext = createContext();
@@ -6,16 +6,19 @@ const GUIContext = createContext();
 export const useGUI = () => useContext(GUIContext);
 
 export const GUIProvider = ({ children }) => {
+  const removeMarkerFunctionRef = useRef(() => {});
+  const addMarkerFunctionRef = useRef(() => {});
+  const logCameraPositionRef = useRef(() => {});
   const [parameters, setParameters] = useState({
     scale: 0.01,
     rotation: 0,
     animationTime: 0,
     fps: 5,
     duration: 1.5,
-    numCameras: 2,
+    numCameras: 12,
     radius: 3,
     cameraHeight: 1.5,
-    imageQuality: 0.25
+    imageQuality: 0.25,
   });
 
   const [loading, setLoading] = useState(false);
@@ -59,6 +62,9 @@ export const GUIProvider = ({ children }) => {
         setLoading,
         progress,
         setProgress,
+        removeMarkerFunctionRef,
+        addMarkerFunctionRef,
+        logCameraPositionRef,
       }}
     >
       {children}

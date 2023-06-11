@@ -11,14 +11,25 @@ const Model = ({ url }) => {
   const fbx = useLoader(FBXLoader, url);
   const mixerRef = useRef();
   const actionRef = useRef();
-  const { parameters, setLoading, setProgress } = useGUI();
-  const { numCameras, cameraHeight, duration, fps, imageQuality } = parameters;
+  const { parameters, setLoading, setProgress, logCameraPositionRef} = useGUI();
+  const {
+    numCameras,
+    cameraHeight,
+    duration,
+    fps,
+    imageQuality,
+    radius,
+  } = parameters;
+
+  const logCameraPosition = () => {
+    console.log(camera.position);
+  };
+
+  logCameraPositionRef.current = logCameraPosition
 
   const captureImages = useCallback(
     async (numCameras, cameraHeight, scene, imageQuality) => {
       const zip = new JSZip();
-      const radius = 5;
-      const center = [0, cameraHeight, 0];
       const timestamp = new Date().toISOString().replace(/[:.]/g, "");
 
       const numFrames = fps * duration;
@@ -32,26 +43,29 @@ const Model = ({ url }) => {
       setProgress(0);
 
       for (let i = 0; i < numCameras; i++) {
-        const angle = (i * Math.PI * 2) / numCameras;
+        const angle = (i * (Math.PI * 2)) / numCameras;
         const cameraPosition = [
-          center[0] + radius * Math.cos(angle),
-          center[1],
-          center[2] + radius * Math.sin(angle),
+          radius * Math.cos(angle),
+          cameraHeight,
+          radius * Math.sin(angle),
         ];
-        const cameraLookAt = [center[0], center[1], center[2]];
+
+        const cameraLookAt = [0, cameraHeight, 0];
 
         camera.position.fromArray(cameraPosition);
         camera.lookAt(...cameraLookAt);
 
         for (let j = 0; j < numFrames; j++) {
           actionRef.current.time = j * intervalBetweenFrames;
-          mixerRef.current?.update(intervalBetweenFrames);
-          gl.setSize(
-            Math.round(1920 * imageQuality),
-            Math.round(1080 * imageQuality)
-          );
+          mixerRef.current?.update(0);
+          
           gl.render(scene, camera);
 
+          // Might need an artificial delay here because rendering wasn't done before the capture.
+          //await new Promise(resolve => setTimeout(resolve, 100));
+          await new Promise(resolve => requestAnimationFrame(resolve));
+
+          console.log(`${i}_${j}.png`, camera.position, camera.rotation)
           const dataURL = gl.domElement.toDataURL("image/png");
 
           zip.file(`${i}_${j}.png`, dataURL.substr(dataURL.indexOf(",") + 1), {
@@ -64,6 +78,8 @@ const Model = ({ url }) => {
           // Yield to the event loop
           await new Promise(requestAnimationFrame);
         }
+
+        actionRef.current.time = 0;
       }
 
       const content = await zip.generateAsync({ type: "blob" });
@@ -76,12 +92,21 @@ const Model = ({ url }) => {
       setLoading(false);
       setProgress(0);
     },
-    [fps, duration, gl, camera, setLoading, setProgress]
+    [
+      fps,
+      duration,
+      gl,
+      camera,
+      setLoading,
+      setProgress,
+      radius,
+      actionRef,
+      mixerRef,
+    ]
   );
 
   useEffect(() => {
     const handleKeyDown = (event) => {
-      console.log(numCameras, cameraHeight); // Add this line
       if (event.ctrlKey && (event.key === "q" || event.keyCode === 81)) {
         captureImages(numCameras, cameraHeight, scene, imageQuality);
       }
@@ -92,7 +117,7 @@ const Model = ({ url }) => {
     return () => {
       document.removeEventListener("keydown", handleKeyDown);
     };
-  }, [captureImages, scene, cameraHeight, numCameras, imageQuality]); // dependencies updated
+  }, [scene, cameraHeight, numCameras, imageQuality, captureImages]); // dependencies updated
 
   useEffect(() => {
     if (fbx) {
@@ -112,9 +137,9 @@ const Model = ({ url }) => {
         actionRef.current.play();
       }
     }
-  }, [fbx, scene, parameters]);
+  }, [fbx, scene, parameters.scale, parameters.rotation]);
 
-  // Update animation time
+  //Update animation time
   useEffect(() => {
     if (actionRef.current) {
       actionRef.current.time = parameters.animationTime;

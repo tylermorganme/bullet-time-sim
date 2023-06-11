@@ -5,16 +5,21 @@ import "./App.css";
 import * as THREE from "three";
 import Model from "./components/Model";
 import { GUIProvider } from "./contexts/GUIContext";
-import {useGUI} from "./contexts/GUIContext"
+import CameraMarkers from "./components/CameraMarkers";
+import { UI } from "./components/UI";
+import Axes from "./components/Axes";
+import ObjectPicking from "./components/ObjectPicking";
 
 function Scene() {
-  const { camera } = useThree();
+  // const { camera } = useThree();
 
-  // You can adjust the following values to fit your needs
-  camera.position.z = 10; // Move the camera away from the origin along the Z axis
-  camera.fov = 75; // Increase field of view
-  camera.aspect = window.innerWidth / window.innerHeight; // Adjust the aspect ratio
-  camera.updateProjectionMatrix(); // Always call this after changing parameters
+  // useEffect(() => {
+  //   // You can adjust the following values to fit your needs
+  //   camera.position.z = 10; // Move the camera away from the origin along the Z axis
+  //   camera.fov = 75; // Increase field of view
+  //   camera.aspect = window.innerWidth / window.innerHeight; // Adjust the aspect ratio
+  //   camera.updateProjectionMatrix(); // Always call this after changing parameters
+  // }, [camera]);
 
   return (
     <React.Fragment>
@@ -40,27 +45,18 @@ function Scene() {
         }
       />
       <Model url={`${process.env.PUBLIC_URL}/Joyful Jump.fbx`} />
+      <CameraMarkers />
+      <Axes />
+      <ObjectPicking />
     </React.Fragment>
   );
 }
-
-const UI = () => {
-  const { loading, progress } = useGUI();
-
-  return (
-    <>
-      {loading && <div>Loading...</div>}
-      <progress value={progress} max="100"/>
-      <div style={{color: "white"}}>Press Ctrl + Q to Capture</div>
-    </>
-  );
-};
 
 function App() {
   return (
     <GUIProvider>
       <UI />
-      <Canvas camera={{ position: [0, 0, 10] }}>
+      <Canvas camera={{ position: [0, 0, 10] }} resize={false}>
         <Scene />
       </Canvas>
     </GUIProvider>
