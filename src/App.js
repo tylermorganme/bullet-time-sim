@@ -5,6 +5,7 @@ import "./App.css";
 import * as THREE from "three";
 import Model from "./components/Model";
 import { GUIProvider } from "./contexts/GUIContext";
+import {useGUI} from "./contexts/GUIContext"
 
 function Scene() {
   const { camera } = useThree();
@@ -43,13 +44,26 @@ function Scene() {
   );
 }
 
+const UI = () => {
+  const { loading, progress } = useGUI();
+
+  return (
+    <>
+      {loading && <div>Loading...</div>}
+      <progress value={progress} max="100"/>
+      <div style={{color: "white"}}>Press Ctrl + Q to Capture</div>
+    </>
+  );
+};
+
 function App() {
   return (
     <GUIProvider>
+      <UI />
       <Canvas camera={{ position: [0, 0, 10] }}>
         <Scene />
       </Canvas>
-    </ GUIProvider>
+    </GUIProvider>
   );
 }
 

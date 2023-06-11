@@ -1,4 +1,4 @@
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useCallback } from "react";
 import { AnimationMixer } from "three";
 import { useLoader, useFrame, useThree } from "@react-three/fiber";
 import { FBXLoader } from "three/examples/jsm/loaders/FBXLoader";
@@ -11,23 +11,26 @@ const Model = ({ url }) => {
   const fbx = useLoader(FBXLoader, url);
   const mixerRef = useRef();
   const actionRef = useRef();
-  const { parameters, setParameters } = useGUI();
-  const { duration, fps } = parameters;
+  const { parameters, setLoading, setProgress } = useGUI();
+  const { numCameras, cameraHeight, duration, fps, imageQuality } = parameters;
 
-  useEffect(() => {
-    const captureImages = async (
-      numCameras = 16,
-      cameraHeight = 1.5,
-      scene
-    ) => {
+  const captureImages = useCallback(
+    async (numCameras, cameraHeight, scene, imageQuality) => {
       const zip = new JSZip();
       const radius = 5;
       const center = [0, cameraHeight, 0];
       const timestamp = new Date().toISOString().replace(/[:.]/g, "");
-    
+
       const numFrames = fps * duration;
       const intervalBetweenFrames = duration / numFrames;
-    
+
+      // This is the total number of captures that will be made
+      const totalCaptures = numCameras * numFrames;
+
+      // Start a loading indication
+      setLoading(true);
+      setProgress(0);
+
       for (let i = 0; i < numCameras; i++) {
         const angle = (i * Math.PI * 2) / numCameras;
         const cameraPosition = [
@@ -36,41 +39,60 @@ const Model = ({ url }) => {
           center[2] + radius * Math.sin(angle),
         ];
         const cameraLookAt = [center[0], center[1], center[2]];
-    
+
         camera.position.fromArray(cameraPosition);
         camera.lookAt(...cameraLookAt);
-    
+
         for (let j = 0; j < numFrames; j++) {
           actionRef.current.time = j * intervalBetweenFrames;
           mixerRef.current?.update(intervalBetweenFrames);
+          gl.setSize(
+            Math.round(1920 * imageQuality),
+            Math.round(1080 * imageQuality)
+          );
           gl.render(scene, camera);
-    
+
           const dataURL = gl.domElement.toDataURL("image/png");
-    
+
           zip.file(`${i}_${j}.png`, dataURL.substr(dataURL.indexOf(",") + 1), {
             base64: true,
           });
+
+          // Update the progress bar after each capture
+          setProgress(((i * numFrames + j + 1) / totalCaptures) * 100);
+
+          // Yield to the event loop
+          await new Promise(requestAnimationFrame);
         }
       }
-    
+
       const content = await zip.generateAsync({ type: "blob" });
       const file = new File([content], `${timestamp}.zip`, {
         type: "application/zip",
       });
       saveAs(file);
+
+      // Stop loading indication
+      setLoading(false);
+      setProgress(0);
+    },
+    [fps, duration, gl, camera, setLoading, setProgress]
+  );
+
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      console.log(numCameras, cameraHeight); // Add this line
+      if (event.ctrlKey && (event.key === "q" || event.keyCode === 81)) {
+        captureImages(numCameras, cameraHeight, scene, imageQuality);
+      }
     };
 
-    document.addEventListener("keydown", (event) => {
-      if (event.ctrlKey && (event.key === "q" || event.keyCode === 81)) {
-        // Ctrl + Q was pressed, trigger your function here
-        captureImages(16, 1.5, scene);
-      }
-    });
+    document.addEventListener("keydown", handleKeyDown);
 
     return () => {
-      document.removeEventListener("keydown", captureImages);
+      document.removeEventListener("keydown", handleKeyDown);
     };
-  }, [scene, camera, duration, fps, gl, setParameters]);
+  }, [captureImages, scene, cameraHeight, numCameras, imageQuality]); // dependencies updated
 
   useEffect(() => {
     if (fbx) {

@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, useRef } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import * as dat from "dat.gui";
 
 const GUIContext = createContext();
@@ -11,11 +11,15 @@ export const GUIProvider = ({ children }) => {
     rotation: 0,
     animationTime: 0,
     fps: 5,
-    duration: 1,
+    duration: 1.5,
     numCameras: 2,
     radius: 3,
     cameraHeight: 1.5,
+    imageQuality: 0.25
   });
+
+  const [loading, setLoading] = useState(false);
+  const [progress, setProgress] = useState(0);
 
   useEffect(() => {
     const gui = new dat.GUI();
@@ -29,6 +33,7 @@ export const GUIProvider = ({ children }) => {
       numCameras: gui.add(parameters, "numCameras", 0, 64),
       radius: gui.add(parameters, "radius", 0, 10),
       cameraHeight: gui.add(parameters, "cameraHeight", 0, 4),
+      imageQuality: gui.add(parameters, "imageQuality", 0, 1),
     };
 
     for (const key in controllers) {
@@ -46,7 +51,16 @@ export const GUIProvider = ({ children }) => {
   }, []);
 
   return (
-    <GUIContext.Provider value={{ parameters, setParameters }}>
+    <GUIContext.Provider
+      value={{
+        parameters,
+        setParameters,
+        loading,
+        setLoading,
+        progress,
+        setProgress,
+      }}
+    >
       {children}
     </GUIContext.Provider>
   );
